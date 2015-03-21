@@ -8,6 +8,8 @@ namespace Controller.Sensor
         {
             switch (type)
             {
+                case "us1":
+                    return new Ultrasone1(type, name);
                 default:
                     throw new Exception(string.Format("Unknown sensor. type={0} name={1}", type, name));
             }

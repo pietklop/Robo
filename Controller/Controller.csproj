@@ -54,6 +54,7 @@
     <Compile Include="Sensor\Measurement.cs" />
     <Compile Include="Sensor\MeasurementEventArgs.cs" />
     <Compile Include="Sensor\SensorBase.cs" />
+    <Compile Include="Sensor\Ultrasone1.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
