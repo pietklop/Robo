@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Controller.Sensor;
 using log4net;
 
 namespace Controller
@@ -10,34 +11,41 @@ namespace Controller
     {
         private readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private Communicater communicater;
+        private List<SensorBase> sensors;
 
         public Controller()
         {
-            communicater = new Communicater();
+            communicater = new Communicater(this);
+            sensors = new List<SensorBase>();
         }
 
         public void Start()
         {
+            communicater.NewMeasurement += HandleNewMeasurement;
             communicater.Start();
-            communicater.InstructionReceived += HandleIncomingInstruction;
         }
 
-        private void HandleIncomingInstruction(object sender, InstructionEventArgs e)
+        private void HandleNewMeasurement(object sender, MeasurementEventArgs e)
         {
-            switch (e.Instruction.Command)
-            {
-                case "x":
-                    log.InfoFormat("Input {0}", e.Instruction.Parameters.First());
-                    break;
-                default:
-                    log.ErrorFormat("Unknown command received: {0}", e.Instruction.Command); 
-                    break;
-            }
+            log.DebugFormat("New value: {0} {1}", e.Sensor, e.Sensor.LastValueString());
         }
 
         public void Stop()
         {
             communicater.Stop();
+            communicater.NewMeasurement -= HandleNewMeasurement;
+        }
+
+        public SensorBase GetOrCreateSensor(string type, string name)
+        {
+            SensorBase sensor = sensors.SingleOrDefault(x => x.Name == name);
+            if (sensor != null) return sensor;
+
+            // new sensor
+            sensor = Factory.Create(type, name);
+            sensors.Add(sensor);
+            log.InfoFormat("Added sensor: {0}", sensor);
+            return sensor;
         }
 
         public void SendTestData()
@@ -47,9 +55,13 @@ namespace Controller
 
         private byte[] CreateMessage()
         {
-            Instruction instruction1 = new Instruction("x", new List<string>{"1.0"});
-            Instruction instruction2 = new Instruction("x", new List<string>{"2.0"});
-            string s = communicater.ComposeMessage(new List<Instruction> {instruction1});
+            List<Instruction> instructions = new List<Instruction>
+            {
+                new Instruction("x", new List<string> {"us1", "left", "1.1"}),
+                new Instruction("x", new List<string> {"us1", "left", "2.0"}),
+                new Instruction("x", new List<string> {"us1", "right", "3"}),
+            };
+            string s = communicater.ComposeMessage(instructions);
             return Encoding.ASCII.GetBytes(s);
         }
 
